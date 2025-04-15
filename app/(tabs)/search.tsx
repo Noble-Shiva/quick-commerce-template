@@ -14,7 +14,7 @@ import { colors } from '@/utils/theme';
 
 // Get screen width to calculate sidebar width (20% of screen)
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SIDEBAR_WIDTH = SCREEN_WIDTH * 0.2;
+const SIDEBAR_WIDTH = SCREEN_WIDTH * 0.2; // 20% of screen width
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -67,7 +67,6 @@ export default function SearchScreen() {
     }
   };
   
-  // Debounced search function
   const debouncedSearch = useCallback(
     debounce(() => {
       performSearch();
@@ -145,45 +144,44 @@ export default function SearchScreen() {
       
       <View style={styles.contentContainer}>
         {/* Categories Sidebar - 20% width */}
-        <ScrollView 
-          style={[
-            styles.categoriesSidebar, 
-            { 
-              backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF',
-              borderRightColor: isDark ? '#333333' : '#EEEEEE',
-              width: SIDEBAR_WIDTH
-            }
-          ]}
-          showsVerticalScrollIndicator={false}
-        >
-          {categories.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={[
-                styles.categoryItem,
-                selectedCategory === item.id && styles.selectedCategoryItem,
-                selectedCategory === item.id && { backgroundColor: isDark ? '#2A1A10' : colors.primary[50] }
-              ]}
-              onPress={() => handleCategorySelect(item.id)}
-            >
-              <View style={[
-                styles.categoryIconContainer,
-                { backgroundColor: isDark ? '#2A2A2A' : '#F0F0F0' }
-              ]}>
-                <Text style={styles.categoryIcon}>{item.icon}</Text>
-              </View>
-              <Text
-                variant="body-sm"
-                weight={selectedCategory === item.id ? "semibold" : "regular"}
-                color={selectedCategory === item.id ? 'accent' : 'primary'}
-                style={styles.categoryName}
-                numberOfLines={2}
+        <View style={[
+          styles.categoriesSidebar,
+          {
+            backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF',
+            borderRightColor: isDark ? '#333333' : '#EEEEEE',
+            width: SIDEBAR_WIDTH,
+          }
+        ]}>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {categories.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={[
+                  styles.categoryItem,
+                  selectedCategory === item.id && styles.selectedCategoryItem,
+                  selectedCategory === item.id && { backgroundColor: isDark ? '#2A1A10' : colors.primary[50] }
+                ]}
+                onPress={() => handleCategorySelect(item.id)}
               >
-                {item.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+                <View style={[
+                  styles.categoryIconContainer,
+                  { backgroundColor: isDark ? '#2A2A2A' : '#F0F0F0' }
+                ]}>
+                  <Text style={styles.categoryIcon}>{item.icon}</Text>
+                </View>
+                <Text
+                  variant="body-sm"
+                  weight={selectedCategory === item.id ? "semibold" : "regular"}
+                  color={selectedCategory === item.id ? 'accent' : 'primary'}
+                  style={styles.categoryName}
+                  numberOfLines={2}
+                >
+                  {item.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
         
         {/* Products Grid - 80% width */}
         <View style={styles.productsContainer}>
@@ -269,23 +267,24 @@ const styles = StyleSheet.create({
   },
   categoriesSidebar: {
     borderRightWidth: 1,
+    height: '100%',
   },
   categoryItem: {
-    paddingVertical: 16,
-    paddingHorizontal: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
   categoryIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   categoryIcon: {
-    fontSize: 20,
+    fontSize: 16,
   },
   categoryName: {
     textAlign: 'center',

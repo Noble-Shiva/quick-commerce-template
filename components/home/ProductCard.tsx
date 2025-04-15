@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { View, Image, StyleSheet, TouchableOpacity, Modal } from 'react-native';
-import { ShoppingCart, Star, Heart, Plus, Minus, X } from 'lucide-react-native';
+import { View, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { ShoppingCart, Star, Heart, Plus, Minus } from 'lucide-react-native';
 import { useWishlist } from '@/context/WishlistContext';
 import { useCart } from '@/context/CartContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -46,15 +46,26 @@ export default function ProductCard({ product, onPress, onAddToCart }: ProductCa
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const { items, addToCart, updateQuantity, removeFromCart } = useCart();
   const [optionsVisible, setOptionsVisible] = useState(false);
+  const [selectedVariantId, setSelectedVariantId] = useState<string>();
   
-  const discountedPrice = product.discount 
-    ? product.price - (product.price * product.discount / 100) 
-    : product.price;
+  // Get selected variant if any
+  const selectedVariant = selectedVariantId 
+    ? (product.variants || []).find(v => v.id === selectedVariantId)
+    : null;
+  
+  // Calculate prices based on selected variant or base product
+  const basePrice = selectedVariant?.price || product.price;
+  const discount = selectedVariant?.discount || product.discount || 0;
+  const discountedPrice = discount 
+    ? basePrice - (basePrice * discount / 100) 
+    : basePrice;
   
   const isFavorite = isInWishlist(product.id);
   
   // Check if product is in cart and get its quantity
-  const cartItem = items.find(item => item.id === product.id);
+  const cartItem = items.find(item => 
+    item.id === (selectedVariantId || product.id)
+  );
   const itemQuantity = cartItem ? cartItem.quantity : 0;
   
   // Sample variants for demonstration
@@ -111,26 +122,56 @@ export default function ProductCard({ product, onPress, onAddToCart }: ProductCa
   
   const handleIncrement = (e: any) => {
     e.stopPropagation();
-    addToCart(product);
+    if (selectedVariantId) {
+      const variant = productVariants.find(v => v.id === selectedVariantId);
+      if (variant) {
+        addToCart({
+          ...product,
+          id: variant.id,
+          price: variant.price,
+          discount: variant.discount,
+          name: `${product.name} - ${variant.name}`
+        });
+      }
+    } else {
+      addToCart(product);
+    }
   };
   
   const handleDecrement = (e: any) => {
     e.stopPropagation();
+    const itemId = selectedVariantId || product.id;
     if (itemQuantity === 1) {
-      removeFromCart(product.id);
+      removeFromCart(itemId);
+      setSelectedVariantId(undefined);
     } else {
-      updateQuantity(product.id, itemQuantity - 1);
+      updateQuantity(itemId, itemQuantity - 1);
     }
   };
   
   const handleSelectVariant = (variant: ProductVariant) => {
-    // In a real app, you would add the selected variant to the cart
-    // For now, we'll just close the modal
+    setSelectedVariantId(variant.id);
+    addToCart({
+      ...product,
+      id: variant.id,
+      price: variant.price,
+      discount: variant.discount,
+      name: `${product.name} - ${variant.name}`
+    });
     setOptionsVisible(false);
   };
   
+  const handleUpdateVariantQuantity = (variantId: string, quantity: number) => {
+    if (quantity === 0) {
+      removeFromCart(variantId);
+      setSelectedVariantId(undefined);
+    } else {
+      updateQuantity(variantId, quantity);
+    }
+  };
+  
   // Display weight/volume/quantity info
-  const displayInfo = product.weight || product.volume || product.quantity || '';
+  const displayInfo = selectedVariant?.quantity || product.weight || product.volume || product.quantity || '';
   
   return (
     <>
@@ -143,10 +184,10 @@ export default function ProductCard({ product, onPress, onAddToCart }: ProductCa
         activeOpacity={0.7}
       >
         {/* Paper tear discount badge */}
-        {product.discount > 0 && (
+        {discount > 0 && (
           <View style={styles.discountBadgeContainer}>
             <View style={styles.discountBadge}>
-              <Text style={styles.discountText}>{product.discount}% OFF</Text>
+              <Text style={styles.discountText}>{discount}% OFF</Text>
             </View>
             <View style={styles.discountBadgeTear} />
           </View>
@@ -176,7 +217,10 @@ export default function ProductCard({ product, onPress, onAddToCart }: ProductCa
             numberOfLines={2}
             style={styles.name}
           >
-            {product.name}
+            {selectedVariant 
+              ? `${product.name} - ${selectedVariant.name}`
+              : product.name
+            }
           </Text>
           
           {/* Weight/volume info */}
@@ -193,13 +237,13 @@ export default function ProductCard({ product, onPress, onAddToCart }: ProductCa
                 {formatPrice(discountedPrice)}
               </Text>
               
-              {product.discount > 0 && (
+              {discount > 0 && (
                 <Text 
                   variant="caption" 
                   color="tertiary" 
                   style={styles.originalPrice}
                 >
-                  {formatPrice(product.price)}
+                  {formatPrice(basePrice)}
                 </Text>
               )}
             </View>
@@ -266,6 +310,9 @@ export default function ProductCard({ product, onPress, onAddToCart }: ProductCa
         product={product}
         variants={productVariants}
         onSelectVariant={handleSelectVariant}
+        selectedVariantId={selectedVariantId}
+        itemQuantity={itemQuantity}
+        onUpdateQuantity={handleUpdateVariantQuantity}
       />
     </>
   );
@@ -273,7 +320,8 @@ export default function ProductCard({ product, onPress, onAddToCart }: ProductCa
 
 const styles = StyleSheet.create({
   container: {
-    width: 160,
+    flex: 1,
+    margin: 8,
     borderRadius: 12,
     overflow: 'hidden',
     elevation: 2,
@@ -281,8 +329,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    marginRight: 12,
-    marginBottom: 12,
     position: 'relative',
   },
   discountBadgeContainer: {
@@ -307,7 +353,7 @@ const styles = StyleSheet.create({
     right: 0,
     width: 10,
     height: 5,
-    backgroundColor: '#0055CC', // Darker shade for the tear effect
+    backgroundColor: '#0055CC',
     borderBottomLeftRadius: 5,
   },
   discountText: {

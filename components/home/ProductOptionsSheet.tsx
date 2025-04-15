@@ -40,6 +40,9 @@ interface ProductOptionsSheetProps {
   product: Product;
   variants: ProductVariant[];
   onSelectVariant: (variant: ProductVariant) => void;
+  selectedVariantId?: string;
+  itemQuantity?: number;
+  onUpdateQuantity?: (variantId: string, quantity: number) => void;
 }
 
 export default function ProductOptionsSheet({
@@ -47,9 +50,19 @@ export default function ProductOptionsSheet({
   onClose,
   product,
   variants,
-  onSelectVariant
+  onSelectVariant,
+  selectedVariantId,
+  itemQuantity = 0,
+  onUpdateQuantity
 }: ProductOptionsSheetProps) {
   const { isDark } = useTheme();
+  
+  const handleQuantityChange = (variant: ProductVariant, change: number) => {
+    if (onUpdateQuantity) {
+      const newQuantity = Math.max(0, (itemQuantity || 0) + change);
+      onUpdateQuantity(variant.id, newQuantity);
+    }
+  };
   
   return (
     <Modal
@@ -80,57 +93,89 @@ export default function ProductOptionsSheet({
         <Text variant="body" style={styles.selectText}>Select unit</Text>
         
         <ScrollView style={styles.variantsContainer}>
-          {variants.map((variant) => (
-            <View 
-              key={variant.id} 
-              style={[
-                styles.variantItem,
-                { borderBottomColor: isDark ? '#333333' : '#F0F0F0' }
-              ]}
-            >
-              <View style={styles.variantLeft}>
-                {variant.discount > 0 && (
-                  <View style={styles.discountBadge}>
-                    <Text style={styles.discountText}>{variant.discount}% OFF</Text>
-                  </View>
-                )}
-                
-                <Image 
-                  source={{ uri: product.image }} 
-                  style={styles.variantImage} 
-                />
-                
-                <View style={styles.variantInfo}>
-                  <Text variant="body" weight="medium">{variant.name}</Text>
+          {variants.map((variant) => {
+            const isSelected = variant.id === selectedVariantId;
+            const variantQuantity = isSelected ? itemQuantity : 0;
+            
+            return (
+              <View 
+                key={variant.id} 
+                style={[
+                  styles.variantItem,
+                  { 
+                    borderBottomColor: isDark ? '#333333' : '#F0F0F0',
+                    backgroundColor: isSelected 
+                      ? (isDark ? '#2A1A10' : '#FFF0EB') 
+                      : 'transparent'
+                  }
+                ]}
+              >
+                <View style={styles.variantLeft}>
+                  {variant.discount > 0 && (
+                    <View style={styles.discountBadge}>
+                      <Text style={styles.discountText}>{variant.discount}% OFF</Text>
+                    </View>
+                  )}
                   
-                  <View style={styles.priceContainer}>
-                    <Text variant="body" weight="semibold">
-                      {formatPrice(variant.discountedPrice)}
-                    </Text>
+                  <Image 
+                    source={{ uri: product.image }} 
+                    style={styles.variantImage} 
+                  />
+                  
+                  <View style={styles.variantInfo}>
+                    <Text variant="body" weight="medium">{variant.name}</Text>
                     
-                    {variant.discount > 0 && (
-                      <Text 
-                        variant="body-sm" 
-                        color="tertiary" 
-                        style={styles.originalPrice}
-                      >
-                        {formatPrice(variant.originalPrice)}
+                    <View style={styles.priceContainer}>
+                      <Text variant="body" weight="semibold">
+                        {formatPrice(variant.discountedPrice)}
                       </Text>
-                    )}
+                      
+                      {variant.discount > 0 && (
+                        <Text 
+                          variant="body-sm" 
+                          color="tertiary" 
+                          style={styles.originalPrice}
+                        >
+                          {formatPrice(variant.originalPrice)}
+                        </Text>
+                      )}
+                    </View>
                   </View>
                 </View>
+                
+                {variantQuantity > 0 ? (
+                  <View style={styles.quantityContainer}>
+                    <TouchableOpacity 
+                      style={styles.quantityButton}
+                      onPress={() => handleQuantityChange(variant, -1)}
+                    >
+                      <Minus size={14} color="#FFFFFF" />
+                    </TouchableOpacity>
+                    
+                    <Text variant="body-sm" weight="semibold" style={styles.quantityText}>
+                      {variantQuantity}
+                    </Text>
+                    
+                    <TouchableOpacity 
+                      style={styles.quantityButton}
+                      onPress={() => handleQuantityChange(variant, 1)}
+                    >
+                      <Plus size={14} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity 
+                    style={styles.addButton}
+                    onPress={() => onSelectVariant(variant)}
+                  >
+                    <Text variant="body-sm" weight="semibold" color="inverse">
+                      ADD
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
-              
-              <TouchableOpacity 
-                style={styles.addButton}
-                onPress={() => onSelectVariant(variant)}
-              >
-                <Text variant="body-sm" weight="semibold" color="inverse">
-                  ADD
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ))}
+            );
+          })}
         </ScrollView>
       </View>
     </Modal>
@@ -188,6 +233,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 15,
     borderBottomWidth: 1,
+    borderRadius: 12,
+    padding: 12,
   },
   variantLeft: {
     flexDirection: 'row',

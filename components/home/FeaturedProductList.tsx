@@ -11,6 +11,17 @@ interface Product {
   rating: number;
   ratingCount: number;
   discount?: number;
+  variants?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    discountedPrice: number;
+    originalPrice: number;
+    discount: number;
+    quantity: string;
+    inStock: boolean;
+  }>;
+  hasOptions?: boolean;
 }
 
 interface FeaturedProductListProps {
@@ -37,11 +48,13 @@ export default function FeaturedProductList({ products, onProductPress, onAddToC
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <ProductCard 
-            product={item} 
-            onPress={() => onProductPress(item.id)}
-            onAddToCart={() => onAddToCart(item)}
-          />
+          <View style={styles.productCardContainer}>
+            <ProductCard 
+              product={item} 
+              onPress={() => onProductPress(item.id)}
+              onAddToCart={() => onAddToCart(item)}
+            />
+          </View>
         )}
         contentContainerStyle={styles.productsList}
       />
@@ -63,5 +76,9 @@ const styles = StyleSheet.create({
   productsList: {
     paddingLeft: 16,
     paddingRight: 8,
+  },
+  productCardContainer: {
+    width: 160,
+    marginRight: 12,
   },
 });
